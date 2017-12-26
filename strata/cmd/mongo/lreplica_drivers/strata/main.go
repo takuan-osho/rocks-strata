@@ -10,6 +10,8 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/takuan-osho/rocks-strata/strata/cmd/mongo/lreplica_drivers/lrossdriver"
+
 	"github.com/facebookgo/rocks-strata/strata"
 	"github.com/facebookgo/rocks-strata/strata/cmd/mongo/lreplica_drivers/lrazureblobdriver"
 	"github.com/facebookgo/rocks-strata/strata/cmd/mongo/lreplica_drivers/lrldriver"
@@ -29,6 +31,8 @@ func main() {
 		strata.RunCLI(lrldriver.DriverFactory{Ops: &lrldriver.Options{}})
 	case "azureblob":
 		strata.RunCLI(lrazureblobdriver.DriverFactory{Ops: &lrazureblobdriver.Options{}})
+	case "oss":
+		strata.RunCLI(lrossdriver.DriverFactory{Ops: &lrossdriver.Options{}})
 	default:
 		strata.RunCLI(lrs3driver.DriverFactory{Ops: &lrs3driver.Options{}})
 	}
