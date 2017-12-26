@@ -6,10 +6,20 @@
 package main
 
 import (
+	"os"
+	"strings"
+
+	"github.com/takuan-osho/rocks-strata/strata/cmd/mongo/lreplica_drivers/lrossdriver"
+
 	"github.com/facebookgo/rocks-strata/strata/cmd/mongo/lreplica_drivers/lrs3driver"
 	"github.com/facebookgo/rocks-strata/strata/mongo"
 )
 
 func main() {
-	mongoq.RunCLI(lrs3driver.DriverFactory{Ops: &lrs3driver.Options{}})
+	switch strings.ToLower(os.Getenv("REMOTE_STORAGE")) {
+	case "oss":
+		mongoq.RunCLI(lrossdriver.DriverFactory{Ops: &lrossdriver.Options{}})
+	default:
+		mongoq.RunCLI(lrs3driver.DriverFactory{Ops: &lrs3driver.Options{}})
+	}
 }
