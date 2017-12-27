@@ -7,17 +7,15 @@ import (
 	"io/ioutil"
 	"strings"
 
+	"github.com/denverdino/aliyungo/oss"
 	"github.com/facebookgo/rocks-strata/strata"
-
-	"github.com/PinIdea/oss-aliyun-go"
 )
 
 // OSSStorage implements the strata.Storage interface using OSS as its storage backing
 type OSSStorage struct {
-	oss    *oss.OSS
+	oss    *oss.Client
 	bucket *oss.Bucket
-	region string
-	auth   oss.Auth
+	region oss.Region
 	prefix string
 }
 
@@ -30,38 +28,31 @@ func (s *OSSStorage) removePrefix(path string) string {
 }
 
 // NewOSSStorage initializes the OSSStorage with required OSS arguments
-func NewOSSStorage(region string, auth oss.Auth, bucketName string, prefix string, bucketACL oss.ACL) (*OSSStorage, error) {
-	ossobj := oss.New(region, auth.AccessKey, auth.SecretKey)
-	bucket := ossobj.Bucket(bucketName)
+func NewOSSStorage(bucketName string, prefix string, region oss.Region, internal bool, accessKeyID string, accessKeySecret string, secure bool, bucketACL oss.ACL) (*OSSStorage, error) {
+	ossclient := oss.NewOSSClient(region, false, accessKeyID, accessKeySecret, secure)
+	bucket := ossclient.Bucket(bucketName)
 
-	// Running PutBucket too many times in parallel (such as distributed cron) can generate the error:
-	// "A conflicting conditional operation is currently in progress against this resource. Please try again"
-	// We should only call PutBucket when we suspect that the bucket doesn't exist. Unfortunately, the
-	// current AdRoll/goamz lib doesn't implement ListBuckets, so to check that the bucket exists
-	// do a List and see if we get an error before calling PutBucket.
 	_, err := bucket.List("", "/", "", 1)
-	// technically, there are many reasons this could fail (such as access denied, or other network error)
-	// but this should sufficiently limit the number of times PutBucket is called in normal operations
+
 	if err != nil {
 		err = bucket.PutBucket(bucketACL)
 		if err != nil {
 			return nil, err
 		}
 	}
+
 	return &OSSStorage{
-		oss:    ossobj,
+		oss:    ossclient,
 		bucket: bucket,
 		region: region,
-		auth:   auth,
 		prefix: prefix,
 	}, nil
 }
 
 // Get returns a reader to the specified OSS path.
-// The reader is a wrapper around a ChecksummingReader. This protects against network corruption.
 func (s *OSSStorage) Get(path string) (io.ReadCloser, error) {
 	path = s.addPrefix(path)
-	resp, err := s.bucket.Head(path)
+	resp, err := s.bucket.GetResponse(path)
 	if resp == nil || err != nil {
 		if err.Error() == "The specified key does not exist." {
 			err = strata.ErrNotFound(path)
