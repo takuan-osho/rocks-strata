@@ -5,7 +5,7 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/PinIdea/oss-aliyun-go"
+	"github.com/denverdino/aliyungo/oss"
 	"github.com/facebookgo/rocks-strata/strata"
 	"github.com/facebookgo/rocks-strata/strata/mongo/lreplica"
 	"github.com/facebookgo/rocks-strata/strata/ossstorage"
@@ -13,10 +13,10 @@ import (
 
 // OSSOptions are common to all commands
 type OSSOptions struct {
-	Region       string `short:"R" long:"region" description:"Aliyun region name, such as \"oss-cn-hangzhou\"" default:"oss-cn-hangzhou"`
-	BucketName   string `short:"b" long:"bucket" description:"Name of OSS bucket used to store the backups" required:"true"`
-	BucketPrefix string `short:"p" long:"bucket-prefix" description:"Prefix used when storing and retrieving files. Optional" optional:"true"`
-	BucketACL    string `short:"a" long:"bucket-acl" description:"ACL is one of private, public-read, public-read-write, authenticated-read, bucket-owner-read, or bucket-owner-full-control" default:"private"`
+	Region       oss.Region `short:"R" long:"region" description:"Aliyun region name, such as \"oss-cn-hangzhou\"" default:"oss-cn-hangzhou"`
+	BucketName   string     `short:"b" long:"bucket" description:"Name of OSS bucket used to store the backups" required:"true"`
+	BucketPrefix string     `short:"p" long:"bucket-prefix" description:"Prefix used when storing and retrieving files. Optional" optional:"true"`
+	BucketACL    string     `short:"a" long:"bucket-acl" description:"ACL is one of private, public-read, public-read-write, authenticated-read, bucket-owner-read, or bucket-owner-full-control" default:"private"`
 }
 
 // ReplicaOptions are used for commands like backup and restore
@@ -54,10 +54,13 @@ func (factory DriverFactory) Driver() (*strata.Driver, error) {
 	}
 
 	ossstorage, err := ossstorage.NewOSSStorage(
-		options.OSS.Region,
-		oss.Auth{AccessKey: accessKey, SecretKey: secretKey},
 		options.OSS.BucketName,
 		options.OSS.BucketPrefix,
+		options.OSS.Region,
+		false,
+		accessKey,
+		secretKey,
+		true,
 		oss.ACL(options.OSS.BucketACL))
 	if err != nil {
 		return nil, err
