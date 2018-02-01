@@ -78,7 +78,7 @@ func (s *OSSStorage) Get(path string) (io.ReadCloser, error) {
 // Put also sends a checksum to protect against network corruption.
 func (s *OSSStorage) Put(path string, data []byte) error {
 	path = s.addPrefix(path)
-	err := s.bucket.Put(path, data, "application/octet-stream", oss.Private)
+	err := s.bucket.Put(path, data, "application/octet-stream", oss.Private, oss.Options{})
 	return err
 }
 
